@@ -71,6 +71,8 @@ spec:
             - --web.console.libraries=/usr/share/prometheus/console_libraries
             - --web.console.templates=/usr/share/prometheus/consoles
             - --web.enable-lifecycle
+            # 1. Bypasses SQLite-style file locks over NFS
+            - --storage.tsdb.no-lockfile
           ports:
             - containerPort: 9090
           volumeMounts:
@@ -78,6 +80,10 @@ spec:
               mountPath: /etc/prometheus
             - name: prometheus-storage
               mountPath: /prometheus
+            # 2. Overlays the local emptyDir volume specifically onto the crashing file path
+            - name: active-query-volume
+              mountPath: /prometheus/queries.active
+              subPath: queries.active
       volumes:
         - name: prometheus-config
           configMap:
@@ -85,3 +91,6 @@ spec:
         - name: prometheus-storage
           persistentVolumeClaim:
             claimName: prometheus-storage-pvc
+        # 3. Local worker node disk storage that fully supports mmap allocation
+        - name: active-query-volume
+          emptyDir: {}
